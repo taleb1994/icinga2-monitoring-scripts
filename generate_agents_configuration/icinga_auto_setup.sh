@@ -374,7 +374,7 @@ main_menu() {
         1)
             # --- MASTER WORKFLOW ---
             print_header "Starting Master Setup"
-            if ! icingacli director kickstart | grep -q "Kickstart configured"; then
+            if ! icingacli director kickstart required | grep -q "Kickstart configured"; then
                 print_error "This does not appear to be a configured Icinga Director master. Please run kickstart manually first."
             fi
             discover_hosts

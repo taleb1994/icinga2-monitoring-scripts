@@ -146,15 +146,31 @@ generate_agent_configs() {
 
     # Generate trusted certificate for agents
     local TRUSTED_CERT_PATH="${PROJECT_CONF_DIR}/trusted-parent.crt"
-    print_info "Generating trusted parent certificate..."
-    if icinga2 pki save-cert --host "$icinga_master_fqdn" --file "$TRUSTED_CERT_PATH"; then
-        print_success "Certificate saved to $TRUSTED_CERT_PATH"
-    else
-        print_error "Failed to generate trusted certificate."
-    fi
+    local MASTER_TRUSTED_CERT="/var/lib/icinga2/certs/trusted-parent.crt"
 
-    if [ ! -s "$AGENT_LIST_FILE" ]; then
-        print_error "Agent list file '$AGENT_LIST_FILE' is empty. No configurations to generate."
+    print_info "Checking for existing trusted parent certificate on master..."
+
+    # Check if the trusted certificate exists on the master
+    if [ -f "$MASTER_TRUSTED_CERT" ]; then
+        print_info "Found existing trusted certificate on master, copying to project directory..."
+        if cp "$MASTER_TRUSTED_CERT" "$TRUSTED_CERT_PATH"; then
+            print_success "Certificate copied to $TRUSTED_CERT_PATH"
+        else
+            print_error "Failed to copy trusted certificate from $MASTER_TRUSTED_CERT"
+        fi
+    else
+        print_info "No existing trusted certificate found, generating new one..."
+        # Generate and save the trusted certificate
+        if icinga2 pki save-cert --trustedcert "$MASTER_TRUSTED_CERT" --host "$icinga_master_fqdn"; then
+            # Copy the newly created certificate to project directory
+            if cp "$MASTER_TRUSTED_CERT" "$TRUSTED_CERT_PATH"; then
+                print_success "Certificate generated and saved to $TRUSTED_CERT_PATH"
+            else
+                print_error "Failed to copy newly generated certificate to $TRUSTED_CERT_PATH"
+            fi
+        else
+            print_error "Failed to generate trusted certificate."
+        fi
     fi
 
     # Loop through each reachable agent and create its config

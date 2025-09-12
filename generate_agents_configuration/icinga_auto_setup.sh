@@ -231,22 +231,7 @@ push_to_git() {
     if [ -z "$GIT_REPO_URL" ]; then
         print_error "Git repository URL cannot be empty."
     fi
-
-    # Manage the local git repository directory
-    if [ ! -d "$GIT_REPO_DIR" ]; then
-        print_info "Cloning repository..."
-        git clone "$GIT_REPO_URL" "$GIT_REPO_DIR" || print_error "Failed to clone repository."
-        cd "$GIT_REPO_DIR" || exit 1
-    else
-        print_info "Pulling latest changes from repository..."
-        cd "$GIT_REPO_DIR" || exit 1
-        git pull || print_error "Failed to pull from repository."
-    fi
     
-    # Copy generated files into the repository
-    # print_info "Copying generated configurations to local repository..."
-    # cp -r "../${PROJECTS_CONF_DIR}" .
-
     # Commit and push
     print_info "Adding, committing, and pushing changes..."
     git add .

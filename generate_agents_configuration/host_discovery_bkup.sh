@@ -72,7 +72,7 @@ if [ ! -d "$PROJECTS_CONF_DIR" ]; then
 fi
 
 # Create project-specific output filename
-OUTPUT_FILE="$PROJECTS_CONF_DIR/$PROJECT/${$PROJECT}_agents.txt"
+OUTPUT_FILE="${PROJECTS_CONF_DIR}/${PROJECT}/${PROJECT}_agents.txt"
 
 # Main
 echo "Starting host discovery with configuration from $CONFIG_FILE"

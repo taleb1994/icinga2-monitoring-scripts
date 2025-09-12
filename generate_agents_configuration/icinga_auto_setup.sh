@@ -198,9 +198,11 @@ systemctl stop icinga2
 # Run the node setup command
 icinga2 node setup \\
 --ticket ${ticket} \\
+--listen 0.0.0.0,5665 \\
 --cn ${node_fqdn} \\
+--zone ${node_fqdn} \\
 --endpoint "${icinga_master_fqdn},${icinga_master_ip}" \\
---zone master \\
+--parent_zone master \\
 --parent_host "${icinga_master_fqdn}" \\
 --trustedcert "/var/lib/icinga2/certs/trusted-parent.crt" \\
 --accept-config \\
@@ -242,8 +244,8 @@ push_to_git() {
     fi
     
     # Copy generated files into the repository
-    print_info "Copying generated configurations to local repository..."
-    cp -r "../${PROJECTS_CONF_DIR}" .
+    # print_info "Copying generated configurations to local repository..."
+    # cp -r "../${PROJECTS_CONF_DIR}" .
 
     # Commit and push
     print_info "Adding, committing, and pushing changes..."

@@ -135,7 +135,7 @@ generate_agent_configs() {
 
     local icinga_master_fqdn
     local icinga_master_ip
-    icinga_master_fqdn=$(hostname -f)
+    icinga_master_fqdn=$(cat /etc/hostname)
     icinga_master_ip=$(hostname -I | awk '{print $1}')
 
     if [ -z "$icinga_master_fqdn" ] || [ -z "$icinga_master_ip" ]; then
@@ -201,10 +201,10 @@ icinga2 node setup \\
 --listen 0.0.0.0,5665 \\
 --cn ${node_fqdn} \\
 --zone ${node_fqdn} \\
---endpoint "${icinga_master_fqdn},${icinga_master_ip}" \\
+--endpoint ${icinga_master_fqdn},${icinga_master_ip} \\
 --parent_zone master \\
---parent_host "${icinga_master_fqdn}" \\
---trustedcert "/var/lib/icinga2/certs/trusted-parent.crt" \\
+--parent_host ${icinga_master_fqdn} \\
+--trustedcert /var/lib/icinga2/certs/trusted-parent.crt \\
 --accept-config \\
 --accept-commands \\
 --disable-confd
@@ -226,12 +226,15 @@ EOF
 # Commits and pushes the generated configurations to a remote repository.
 push_to_git() {
     print_header "Push Configurations to Git"
-    read -p "Enter the Git repository URL (e.g., git@github.com:user/repo.git): " GIT_REPO_URL
+    # read -p "Enter the Git repository URL (e.g., git@github.com:user/repo.git): " GIT_REPO_URL
+    
+    # Hardcoded Repo. Uncomment above line to make it dynamic.
+    GIT_REPO_URL="git@github.com:taleb1994/icinga2-monitoring-scripts.git"
 
     if [ -z "$GIT_REPO_URL" ]; then
         print_error "Git repository URL cannot be empty."
     fi
-    
+
     # Commit and push
     print_info "Adding, committing, and pushing changes..."
     git add .
@@ -313,7 +316,7 @@ configure_agent() {
     
     # Find and run the agent's config script
     local agent_fqdn
-    agent_fqdn=$(hostname -f)
+    agent_fqdn=$(cat /etc/hostname)
     local agent_conf_script="${selected_project_path}${agent_fqdn}_conf.sh"
 
     if [ ! -f "$agent_conf_script" ]; then
@@ -391,16 +394,17 @@ main_menu() {
         2)
             # --- AGENT WORKFLOW ---
             print_header "Starting Agent Setup"
-            read -p "Enter the Git repository URL to pull configurations from: " GIT_REPO_URL
-            if [ -z "$GIT_REPO_URL" ]; then print_error "Git repository URL cannot be empty."; fi
+            # No need to clone inside the script, since no changes will be made to the repo.
+            # read -p "Enter the Git repository URL to pull configurations from: " GIT_REPO_URL
+            # if [ -z "$GIT_REPO_URL" ]; then print_error "Git repository URL cannot be empty."; fi
 
-            if [ ! -d "$GIT_REPO_DIR" ]; then
-                git clone "$GIT_REPO_URL" "$GIT_REPO_DIR" || print_error "Failed to clone repository."
-            else
-                cd "$GIT_REPO_DIR" || exit 1
-                git pull || print_error "Failed to pull from repository."
-                cd ..
-            fi
+            # if [ ! -d "$GIT_REPO_DIR" ]; then
+            #    git clone "$GIT_REPO_URL" "$GIT_REPO_DIR" || print_error "Failed to clone repository."
+            # else
+            #    cd "$GIT_REPO_DIR" || exit 1
+            #    git pull || print_error "Failed to pull from repository."
+            #    cd ..
+            # fi
 
             install_icinga_agent
             configure_agent

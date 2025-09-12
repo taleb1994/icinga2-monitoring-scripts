@@ -18,7 +18,7 @@ CONF_DIR="conf"
 # Directory where generated agent configurations will be stored
 PROJECTS_CONF_DIR="project-agents-conf"
 # Local directory for the Git repository clone
-GIT_REPO_DIR="icinga-config-repo"
+# GIT_REPO_DIR="icinga-config-repo"
 
 
 # --- Helper Functions ---
@@ -293,7 +293,7 @@ configure_agent() {
     print_header "Configure Icinga2 Agent"
     
     # Select project
-    local project_dirs=("$GIT_REPO_DIR/$PROJECTS_CONF_DIR"/*/)
+    local project_dirs=("$PROJECTS_CONF_DIR"/*/)
     if [ ${#project_dirs[@]} -eq 0 ]; then
         print_error "No project configurations found in the repository."
     fi

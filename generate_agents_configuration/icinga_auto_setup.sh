@@ -201,7 +201,7 @@ icinga2 node setup \\
 --listen 0.0.0.0,5665 \\
 --cn ${node_fqdn} \\
 --zone ${node_fqdn} \\
---endpoint ${icinga_master_fqdn},${icinga_master_ip} \\
+--endpoint ${icinga_master_fqdn},${icinga_master_ip},5665 \\
 --parent_zone master \\
 --parent_host ${icinga_master_fqdn} \\
 --trustedcert /var/lib/icinga2/certs/trusted-parent.crt \\
@@ -338,7 +338,7 @@ configure_agent() {
 
     # Final checks and setup
     print_info "Finalizing agent setup..."
-    ll /var/lib/icinga2/certs/
+    ls -la /var/lib/icinga2/certs/
     openssl verify -CAfile /var/lib/icinga2/certs/ca.crt "/var/lib/icinga2/certs/${agent_fqdn}.crt"
 
     # Enable remote commands

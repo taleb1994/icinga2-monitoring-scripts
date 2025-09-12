@@ -1,0 +1,17 @@
+zones.d/director-global/user_templates.conf
+template User "user-template" {
+    enable_notifications = true
+    period = "24x7-timeperiod"
+    states = [ Critical, Down, OK, Unknown, Up, Warning ]
+    types = [
+        Acknowledgement,
+        Custom,
+        DowntimeEnd,
+        DowntimeRemoved,
+        DowntimeStart,
+        FlappingEnd,
+        FlappingStart,
+        Problem,
+        Recovery
+    ]
+}

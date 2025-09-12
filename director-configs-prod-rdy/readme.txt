@@ -1,0 +1,1 @@
+Alle Icinga-Director Konfigurationen sind unter "ls -halt /var/lib/icinga2/api/zones/director-global/director/" zu finden.

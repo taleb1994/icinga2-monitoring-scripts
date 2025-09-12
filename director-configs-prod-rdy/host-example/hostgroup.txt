@@ -1,0 +1,3 @@
+zones.d/director-global/hostgroups.conf
+object HostGroup "c2vba-d" {
+}

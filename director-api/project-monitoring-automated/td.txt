@@ -1,0 +1,13 @@
+To Do:
+    - When you install icinga-agent on every agent node -> you have to clone the self written scripts and configurations.
+    - Gather hostnames and ips from k8s-masters -> create a project folder -> save them to a csv file then push it to git
+    - Integrate check_cpu and check_memory into services.sh
+    - 
+    - 
+
+Problems: 
+    - Using the different zones I think, it led to not working notifications, since notifications are only configured on the icingamaster
+    - Automationg the whole process its not going to work well with the director-api, maybe with icinga itself. But this is not worth the effort right now
+    - Maybe also the usage of node setup instead of node wizard is involved!?
+    - 25.06.2025 -> Destroying the whole thing after abowt 4 weeks of automation trying and start frish
+    - starting fresh did work using only director and avoiding director-api due to the (working on agent issue)

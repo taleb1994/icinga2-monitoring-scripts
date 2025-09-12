@@ -1,0 +1,19 @@
+zones.d/master/notification_templates.conf
+template Notification "host-notification-template" {
+    command = "mail-host-notification"
+    interval = 12h
+    period = "24x7-timeperiod"
+    states = [ Down ]
+    types = [
+        Acknowledgement,
+        Custom,
+        DowntimeEnd,
+        DowntimeRemoved,
+        DowntimeStart,
+        FlappingEnd,
+        FlappingStart,
+        Problem,
+        Recovery
+    ]
+    users = [ "mohammed-taleb" ]
+}

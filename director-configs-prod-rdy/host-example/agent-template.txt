@@ -1,0 +1,20 @@
+zones.d/master/host_templates.conf
+if (! get_template(Host, "icinga-agent-template")) { template Host "icinga-agent-template" {
+    check_command = "hostalive"
+    max_check_attempts = "5"
+    check_interval = 5m
+    retry_interval = 1m
+    check_timeout = 15s
+    enable_notifications = true
+    enable_active_checks = true
+    enable_passive_checks = true
+    enable_event_handler = true
+    enable_flapping = true
+    enable_perfdata = true
+    try { // This setting is only available in Icinga >= 2.8.0
+        flapping_threshold_high = 80
+    } except { globals.directorWarnOnceForThresholds() }
+    try { // This setting is only available in Icinga >= 2.8.0
+        flapping_threshold_low = 50
+    } except { globals.directorWarnOnceForThresholds() }
+} }

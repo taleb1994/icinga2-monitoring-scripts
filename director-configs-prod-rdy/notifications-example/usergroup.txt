@@ -1,0 +1,3 @@
+zones.d/master/usergroups.conf
+object UserGroup "Integration" {
+}

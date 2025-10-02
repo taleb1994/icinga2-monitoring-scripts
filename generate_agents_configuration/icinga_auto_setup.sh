@@ -263,24 +263,29 @@ install_icinga_agent() {
     if [[ "$ID" == "sles" || "$ID" == "opensuse-leap" ]]; then
         print_info "Detected SUSE-based system. Installing Icinga2..."
         if [[ "$ID" == "sles" ]]; then
-            zypper ar https://packages.icinga.com/subscription/sles/ICINGA-release.repo
+            zypper -q ar https://packages.icinga.com/subscription/sles/ICINGA-release.repo
             SUSEConnect -p PackageHub/"$VERSION_ID"/x86_64
         else
-            zypper ar https://packages.icinga.com/openSUSE/ICINGA-release.repo
+            zypper -q ar https://packages.icinga.com/openSUSE/ICINGA-release.repo
         fi
-        zypper --gpg-auto-import-keys ref
-        zypper --non-interactive install icinga2 || print_error "Icinga2 installation failed."
+        zypper --gpg-auto-import-keys -q ref
+        zypper --non-interactive -q install icinga2 || print_error "Icinga2 installation failed."
 
     elif [[ "$ID" == "ubuntu" ]]; then
         print_info "Detected Ubuntu system. Installing Icinga2..."
         export DEBIAN_FRONTEND=noninteractive
-        apt-get update -y
-        apt-get install -y apt-transport-https wget gnupg
-        wget -O - https://packages.icinga.com/icinga.key | gpg --dearmor -o /usr/share/keyrings/icinga-archive-keyring.gpg
+        apt-get update -y > /dev/null 2>&1
+        apt-get install -y apt-transport-https wget gnupg > /dev/null 2>&1
+        
+        # Check if keyring already exists, if not download it
+        if [[ ! -f /usr/share/keyrings/icinga-archive-keyring.gpg ]]; then
+            wget -q -O - https://packages.icinga.com/icinga.key | gpg --dearmor -o /usr/share/keyrings/icinga-archive-keyring.gpg > /dev/null 2>&1
+        fi
+        
         DIST=$(lsb_release -c | awk '{print $2}')
         echo "deb [signed-by=/usr/share/keyrings/icinga-archive-keyring.gpg] https://packages.icinga.com/ubuntu icinga-${DIST} main" > /etc/apt/sources.list.d/"${DIST}-icinga.list"
-        apt-get update -y
-        apt-get install -y icinga2 || print_error "Icinga2 installation failed."
+        apt-get update -y > /dev/null 2>&1
+        apt-get install -y icinga2 > /dev/null 2>&1 || print_error "Icinga2 installation failed."
     else
         print_error "Unsupported operating system: $ID. Please install Icinga2 manually."
     fi

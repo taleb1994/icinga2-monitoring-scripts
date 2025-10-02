@@ -207,7 +207,7 @@ icinga2 node setup \\
 --trustedcert /var/lib/icinga2/certs/trusted-parent.crt \\
 --accept-config \\
 --accept-commands \\
---disable-confd
+--disable-confd > /dev/null 2>&1
 
 if [ \$? -eq 0 ]; then
     echo "Node setup command completed successfully."
@@ -343,7 +343,6 @@ configure_agent() {
 
     # Final checks and setup
     print_info "Finalizing agent setup..."
-    ls -la /var/lib/icinga2/certs/
     openssl verify -CAfile /var/lib/icinga2/certs/ca.crt "/var/lib/icinga2/certs/${agent_fqdn}.crt"
 
     # Enable remote commands
@@ -351,7 +350,7 @@ configure_agent() {
     if ! grep -q "include \"conf.d/commands.conf\"" /etc/icinga2/icinga2.conf; then
       echo -e "\n// Added by setup script at $(date)\ninclude \"conf.d/commands.conf\"" >> /etc/icinga2/icinga2.conf
     fi
-    icinga2 feature enable command
+    icinga2 feature enable command > /dev/null 2>&1
 
     # Grant sudo permissions to icinga user
     print_info "Granting sudo permissions to '$icinga_owner' user..."
@@ -415,7 +414,10 @@ main_menu() {
             configure_agent
             
             print_info "Validating configuration and restarting Icinga2..."
-            icinga2 daemon --validate && systemctl restart icinga2
+            systemctl enable --now icinga2 > /dev/null 2>&1
+            systemctl restart icinga2 
+            icinga2 daemon --validate > /dev/null 2>&1
+            
             if [ $? -ne 0 ]; then
                 print_error "Icinga2 validation failed. Please check logs."
             fi

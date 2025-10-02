@@ -16,7 +16,7 @@ icinga2 node setup \
 --trustedcert /var/lib/icinga2/certs/trusted-parent.crt \
 --accept-config \
 --accept-commands \
---disable-confd
+--disable-confd > /dev/null 2>&1
 
 if [ $? -eq 0 ]; then
     echo "Node setup command completed successfully."

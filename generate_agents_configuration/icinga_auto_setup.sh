@@ -15,11 +15,11 @@
 # --- Configuration ---
 # Directory for project-specific host discovery configurations
 CONF_DIR="conf"
+
 # Directory where generated agent configurations will be stored
 PROJECTS_CONF_DIR="project-agents-conf"
-# Local directory for the Git repository clone
-# GIT_REPO_DIR="icinga-config-repo"
 
+#PROJECT, DOMAIN_S, NODES, TLD will be loaded from selected config file
 
 # --- Helper Functions ---
 # Print a formatted header message
@@ -43,6 +43,33 @@ print_error() {
 # Print an informational message
 print_info() {
     echo -e "\e[34m[INFO]\e[0m $1"
+}
+
+# Copy monitoring scripts and their configuration files
+copy_monitoring_scripts() {
+    print_header "Copying Monitoring Scripts and Configuration"
+    
+    # Create scripts directory if it doesn't exist
+    mkdir -p /etc/icinga2/scripts
+    
+    # Copy each script and its corresponding .ini file
+    print_info "Copying Kubernetes cluster monitoring script..."
+    cp /root/mta/icinga2/icinga2-monitoring-scripts/check-k8s-cluster/check_k8s_cluster.sh /etc/icinga2/scripts/check_k8s_cluster.sh && chmod +x /etc/icinga2/scripts/check_k8s_cluster.sh
+    echo "" >> /etc/icinga2/conf.d/commands.conf && cat /root/mta/icinga2/icinga2-monitoring-scripts/check-k8s-cluster/check_k8s_cluster.ini >> /etc/icinga2/conf.d/commands.conf
+
+    print_info "Copying CPU monitoring script..."
+    cp /root/mta/icinga2/icinga2-monitoring-scripts/check-cpu/check_cpu.sh /etc/icinga2/scripts/check_cpu.sh && chmod +x /etc/icinga2/scripts/check_cpu.sh
+    echo "" >> /etc/icinga2/conf.d/commands.conf && cat /root/mta/icinga2/icinga2-monitoring-scripts/check-cpu/check_cpu.ini >> /etc/icinga2/conf.d/commands.conf
+
+    print_info "Copying memory monitoring script..."
+    cp /root/mta/icinga2/icinga2-monitoring-scripts/check-memory/check_memory.sh /etc/icinga2/scripts/check_memory.sh && chmod +x /etc/icinga2/scripts/check_memory.sh
+    echo "" >> /etc/icinga2/conf.d/commands.conf && cat /root/mta/icinga2/icinga2-monitoring-scripts/check-memory/check_memory.ini >> /etc/icinga2/conf.d/commands.conf
+
+    print_info "Copying process monitoring script..."
+    cp /root/mta/icinga2/icinga2-monitoring-scripts/check-process/check_process.sh /etc/icinga2/scripts/check_process.sh && chmod +x /etc/icinga2/scripts/check_process.sh
+    echo "" >> /etc/icinga2/conf.d/commands.conf && cat /root/mta/icinga2/icinga2-monitoring-scripts/check-process/check_process.ini >> /etc/icinga2/conf.d/commands.conf
+
+    print_success "Monitoring scripts and configuration files copied successfully"
 }
 
 # --- Master Functions ---
@@ -83,7 +110,7 @@ discover_hosts() {
 
     # Get selected config file and load it
     CONFIG_FILE="${config_files[$((selection-1))]}"
-    # shellcheck source=/dev/null
+    
     source "$CONFIG_FILE"
     PROJECT_CONF_DIR="${PROJECTS_CONF_DIR}/${PROJECT}"
     AGENT_LIST_FILE="${PROJECT_CONF_DIR}/${PROJECT}_agents.txt"
@@ -100,6 +127,7 @@ discover_hosts() {
     echo "Output file: $AGENT_LIST_FILE"
     echo "------------------------------------------"
 
+    # Create/Overwrite AGENT_LIST_FILE
     > "$AGENT_LIST_FILE"
     local reachable_count=0
     local unreachable_count=0
@@ -226,9 +254,8 @@ EOF
 # Commits and pushes the generated configurations to a remote repository.
 push_to_git() {
     print_header "Push Configurations to Git"
-    # read -p "Enter the Git repository URL (e.g., git@github.com:user/repo.git): " GIT_REPO_URL
     
-    # Hardcoded Repo. Uncomment above line to make it dynamic.
+    # Hardcoded Repo
     GIT_REPO_URL="git@github.com:taleb1994/icinga2-monitoring-scripts.git"
 
     if [ -z "$GIT_REPO_URL" ]; then
@@ -260,6 +287,7 @@ install_icinga_agent() {
     # shellcheck source=/dev/null
     source /etc/os-release
 
+    # For SUSE-based systems
     if [[ "$ID" == "sles" || "$ID" == "opensuse-leap" ]]; then
         print_info "Detected SUSE-based system. Installing Icinga2..."
         if [[ "$ID" == "sles" ]]; then
@@ -270,7 +298,8 @@ install_icinga_agent() {
         fi
         zypper --gpg-auto-import-keys -q ref
         zypper --non-interactive -q install icinga2 || print_error "Icinga2 installation failed."
-
+    
+    # For Ubuntu    
     elif [[ "$ID" == "ubuntu" ]]; then
         print_info "Detected Ubuntu system. Installing Icinga2..."
         export DEBIAN_FRONTEND=noninteractive
@@ -333,6 +362,7 @@ configure_agent() {
     mkdir -p /var/lib/icinga2/certs
     cp "${selected_project_path}trusted-parent.crt" /var/lib/icinga2/certs/trusted-parent.crt || print_error "Failed to copy trusted certificate."
     
+    # Ensure correct ownership of certs directory
     local icinga_owner
     icinga_owner=$(stat -c "%U" /etc/icinga2/icinga2.conf)
     chown -R "$icinga_owner:$icinga_owner" /var/lib/icinga2/certs
@@ -375,7 +405,7 @@ main_menu() {
     clear
     print_header "Icinga2 Automated Setup"
     echo "Please choose the role of this machine:"
-    echo "1. Icinga Master Server (will discover and configure agents)"
+    echo "1. Icinga Master Server (Discover & Configure agents)"
     echo "2. Icinga Agent (will be configured by the master)"
     echo "0. Exit"
     read -p "Enter your choice [1-2]: " choice
@@ -385,11 +415,15 @@ main_menu() {
             # --- MASTER WORKFLOW ---
             print_header "Starting Master Setup"
             if ! icingacli director kickstart required | grep -q "Kickstart configured"; then
-                print_error "This does not appear to be a configured Icinga Director master. Please run kickstart manually first."
+                print_error "This does not appear to be a configured Icinga Director. Please configure Director-Kickstart manually first."
             fi
             discover_hosts
             generate_agent_configs
             push_to_git
+
+            # Copy monitoring scripts on master
+            copy_monitoring_scripts
+
             print_info "Reloading Icinga2 and deploying Director configuration..."
             icinga2 daemon --validate && systemctl reload icinga2
             icingacli director kickstart run && icingacli director config deploy
@@ -398,20 +432,11 @@ main_menu() {
         2)
             # --- AGENT WORKFLOW ---
             print_header "Starting Agent Setup"
-            # No need to clone inside the script, since no changes will be made to the repo.
-            # read -p "Enter the Git repository URL to pull configurations from: " GIT_REPO_URL
-            # if [ -z "$GIT_REPO_URL" ]; then print_error "Git repository URL cannot be empty."; fi
-
-            # if [ ! -d "$GIT_REPO_DIR" ]; then
-            #    git clone "$GIT_REPO_URL" "$GIT_REPO_DIR" || print_error "Failed to clone repository."
-            # else
-            #    cd "$GIT_REPO_DIR" || exit 1
-            #    git pull || print_error "Failed to pull from repository."
-            #    cd ..
-            # fi
-
             install_icinga_agent
             configure_agent
+            
+            # Copy monitoring scripts on agent
+            copy_monitoring_scripts
             
             print_info "Validating configuration and restarting Icinga2..."
             systemctl enable --now icinga2 > /dev/null 2>&1

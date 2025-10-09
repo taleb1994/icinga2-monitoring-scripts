@@ -154,6 +154,13 @@ discover_hosts() {
     echo "------------------------------------------"
     print_success "Discovery complete. Found $reachable_count reachable hosts."
     echo "Results saved to $AGENT_LIST_FILE"
+
+    # Grant sudo permissions to icinga user
+    local icinga_owner=$(stat -c "%U" /etc/icinga2/icinga2.conf)
+    print_info "Granting sudo permissions to '$icinga_owner' user..."
+    echo "$icinga_owner ALL=(ALL) NOPASSWD: ALL" > "/etc/sudoers.d/${icinga_owner}-nopasswd"
+    chmod 440 "/etc/sudoers.d/${icinga_owner}-nopasswd"
+    visudo -c || print_error "Failed to validate sudoers file."
 }
 
 # 2. GENERATE AGENT CONFIGURATIONS

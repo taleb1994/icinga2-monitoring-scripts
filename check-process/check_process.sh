@@ -85,30 +85,38 @@ check_systemd_service() {
 check_certificate_expiration() {
     local cert_file="$1"
     local exit_code=$STATE_OK
-    # Regex to find expiration dates for nodes.
+    
+    # Use OpenSSL to get certificate expiration date
     local exp_date
-    exp_date=$(grep "node:" "$cert_file" | grep -oE "expires at [0-9]{4}-[0-9]{2}-[0-9]{2}" | cut -d' ' -f3 | head -n 1)
-
+    exp_date=$(openssl x509 -in "$cert_file" -noout -dates 2>/dev/null | grep "notAfter" | cut -d= -f2)
+    
     if [[ -n "$exp_date" ]]; then
-        # Calculate the difference in seconds between expiration date and now.
-        local exp_seconds=$(date -d "$exp_date" +%s)
-        local now_seconds=$(date +%s)
-        local seconds_until_expiry=$((exp_seconds - now_seconds))
-        local ninety_days_in_seconds=$((90 * 86400))
+        # Convert OpenSSL date format (Jan 22 12:01:58 2026 GMT) to standard format
+        local exp_date_std=$(date -d "$exp_date" "+%Y-%m-%d" 2>/dev/null)
+        
+        if [[ -n "$exp_date_std" ]]; then
+            # Calculate the difference in seconds between expiration date and now.
+            local exp_seconds=$(date -d "$exp_date_std" +%s)
+            local now_seconds=$(date +%s)
+            local seconds_until_expiry=$((exp_seconds - now_seconds))
+            local ninety_days_in_seconds=$((90 * 86400))
 
-        if [[ "$seconds_until_expiry" -lt "$ninety_days_in_seconds" ]]; then
-            echo "WARNING: Certificate for node expires on $exp_date and needs rotation soon."
-            exit_code=$STATE_WARNING
+            if [[ "$seconds_until_expiry" -lt "$ninety_days_in_seconds" ]]; then
+                echo "WARNING: Certificate $cert_file expires on $exp_date_std and needs rotation soon."
+                exit_code=$STATE_WARNING
+            else
+                echo "OK: Certificate $cert_file expires on $exp_date_std."
+            fi
         else
-            echo "OK: Certificate for node expires on $exp_date."
+            echo "WARNING: Could not parse certificate expiration date: $exp_date"
+            exit_code=$STATE_WARNING
         fi
     else
-        echo "WARNING: Could not determine certificate expiration date."
+        echo "WARNING: Could not determine certificate expiration date for $cert_file."
         exit_code=$STATE_WARNING
     fi
     return $exit_code
 }
-
 # Function: check_k8s_pod
 # Checks the status of a Kubernetes pod.
 # Parameters:
@@ -231,18 +239,20 @@ check_rke2_server() {
     version=$(rke2 --version 2>/dev/null | grep -oP 'v\d+\.\d+\.\d+' || echo "N/A")
     echo "Version: $version"
 
-    local cert_file="/tmp/rke2-certificates.txt"
-    if rke2 certificate check > "$cert_file" 2>&1; then
+    # Check kube-apiserver client certificate using OpenSSL
+    local cert_file="/var/lib/rancher/rke2/server/tls/client-kube-apiserver.crt"
+    
+    if [[ -f "$cert_file" ]]; then
         check_certificate_expiration "$cert_file"
         local cert_exit_code=$?
         if (( cert_exit_code > exit_code )); then
             exit_code=$cert_exit_code
         fi
     else
-        echo "WARNING: Could not check rke2 certificates."
+        echo "WARNING: Certificate file $cert_file not found."
         exit_code=$STATE_WARNING
     fi
-    rm -f "$cert_file"
+    
     return $exit_code
 }
 

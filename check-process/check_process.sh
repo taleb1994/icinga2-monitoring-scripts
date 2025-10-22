@@ -280,7 +280,7 @@ check_rke2_agent() {
 check_kafka() {
     echo "Service: kafka"
     # Detect if it's a systemd service or k8s pod
-    if systemctl list-units --type=service | grep -q "kafka.service"; then
+    if systemctl status kafka > /dev/null 2>&1; then
         echo -e "\nINFO: Detected Kafka running as a systemd service."
         local exit_code=$STATE_OK
         if ! check_systemd_service kafka; then

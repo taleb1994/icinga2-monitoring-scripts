@@ -36,7 +36,7 @@ Usage:
 
 Arguments:
     -p, --process   The name of the process/service to check.
-                    Supported: k3s, rke2-server, rke2-agent, kafka, mongodb
+                    Supported: k3s, rke2-server, rke2-agent, kafka, mongod
 
 Options:
     -h, --help      Show this help message.
@@ -384,7 +384,7 @@ main() {
             check_kafka
             final_status=$?
             ;;
-        mongodb)
+        mongod)
             check_mongodb
             final_status=$?
             ;;
